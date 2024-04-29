@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Authentication</title>
+</head>
+<body>
+  <style>
+    html {
+      height: 100%;
+      overflow: hidden;
+    }
+    body {
+      margin:0;
+      padding:0;
+      font-family: sans-serif;
+      background: linear-gradient(rgb(0, 0, 0), #681c00);
+    }
+  
+    .loginBox {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 400px;
+      padding: 40px;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,.5);
+      box-sizing: border-box;
+      box-shadow: 0 15px 25px rgba(0,0,0,.6);
+      border-radius: 10px;
+    }
+  
+    .loginBox h2 {
+      margin: 0 0 30px;
+      padding: 0;
+      color: #fff;
+      text-align: center;
+    }
+  
+    .loginBox .userBox {
+      position: relative;
+    }
+  
+    .loginBox .userBox input {
+      width: 100%;
+      padding: 10px 0;
+      font-size: 16px;
+      color: #fff;
+      margin-bottom: 30px;
+      border: none;
+      border-bottom: 1px solid #fff;
+      outline: none;
+      background: transparent;
+    }
+    .loginBox .userBox label {
+      position: absolute;
+      top:0;
+      left: 0;
+      padding: 10px 0;
+      font-size: 16px;
+      color: #fff;
+      pointer-events: none;
+      transition: .5s;
+    }
+  
+    .loginBox .userBox input:focus ~ label,
+    .loginBox .userBox input:valid ~ label {
+      top: -20px;
+      left: 0;
+      color: #ff4500;
+      font-size: 12px;
+    }
+  
+    .btn {
+      position: relative;
+      display: inline-block;
+      padding: 10px 20px;
+      color: #ff4500;
+      font-size: 16px;
+      text-decoration: none;
+      text-transform: uppercase;
+      overflow: hidden;
+      transition: .5s;
+      margin-top: 40px;
+      cursor: pointer;
+      letter-spacing: 4px;
+      background: transparent;
+      border: none;
+    }
+  
+    .btn:hover {
+      background: #ff4500;
+      color: #fff;
+      border-radius: 5px;
+      box-shadow: 0 0 5px #ff4500,
+                  0 0 25px #ff4500,
+                  0 0 50px #ff4500,
+                  0 0 100px #ff4500;
+    }
+  
+    #registerButton{
+      cursor: default;
+      color: #7b2100;
+    }
+    #registerButton:hover{
+      background: transparent;
+      color: #7b2100;
+      border-radius: none;
+      box-shadow: none;
+    }
+  </style>
+  <div class="loginBox">
+    <h2 id="statusField">Login</h2>
+    <form>
+      <div class="userBox">
+        <input id="loginField" type="text" name="" required="">
+        <label>Username</label>
+      </div>
+      <div class="userBox">
+        <input id="passwordField" type="password" name="" required="">
+        <label>Password</label>
+      </div>
+      <button class="btn" type="button" id="loginButton">Submit</button>
+      <button class="btn" type="button" id="registerButton">Register</button>
+    </form>
+  </div>
+  <script src="./authentication.js"></script>
+  <script>
+    document.addEventListener('keydown', (e)=>{
+      if(e.key == "Enter") {
+        const loginButton = document.getElementById("loginButton");
+        loginButton.onclick();
+      }
+    });
+  </script>
+</body>
+</html>

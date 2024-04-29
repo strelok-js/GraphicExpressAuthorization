@@ -1,0 +1,17 @@
+{
+  "name": "graphic-express-authorization",
+  "version": "0.0.1",
+  "description": "Simple graphical authorization with login and password input and subsequent issuance of JWToken for express with fine tuning",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Strelok.js, TillSilph",
+  "license": "MIT",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cookie-parser": "^1.4.6",
+    "express": "^4.19.2",
+    "jsonwebtoken": "^9.0.2"
+  }
+}
