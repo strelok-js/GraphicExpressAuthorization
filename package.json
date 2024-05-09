@@ -1,6 +1,6 @@
 {
   "name": "graphic-express-authorization",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Simple graphical authorization with login and password input and subsequent issuance of JWToken for express with fine tuning",
   "main": "index.js",
   "scripts": {
@@ -13,5 +13,20 @@
     "cookie-parser": "^1.4.6",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/strelok-js/GraphicExpressAuthorization.git"
+  },
+  "keywords": [
+    "express",
+    "authorization",
+    "ui",
+    "gui",
+    "jwt"
+  ],
+  "bugs": {
+    "url": "https://github.com/strelok-js/GraphicExpressAuthorization/issues"
+  },
+  "homepage": "https://github.com/strelok-js/GraphicExpressAuthorization#readme"
 }
