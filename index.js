@@ -48,14 +48,14 @@ class GraphicExpressAuthorization {
     }
     validateJWT(JWT) {
         return new Promise((res,rej)=>{
-            jwt.verify(JWT, this.config.jwt.publicKey??this.config.jwt.privateKey, this.config.jwt.genConfig, (err, decoded)=>{
+            jwt.verify(JWT, this.config.jwt.publicKey??this.config.jwt.privateKey, (err, decoded)=>{
                 if(err) res(null);
                 else res(decoded);
             });
         });
     }
     generateJWT(login, payload={}){
-        return jwt.sign({ login, ...payload }, this.config.jwt.privateKey);
+        return jwt.sign({ login, ...payload }, this.config.jwt.privateKey, this.config.jwt.genConfig);
     }
     getPayload(JWT) {
         if(!this.config.jwt.payload) return undefined;

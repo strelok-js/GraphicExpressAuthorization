@@ -1,6 +1,6 @@
 {
   "name": "graphic-express-authorization",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Simple graphical authorization with login and password input and subsequent issuance of JWToken for express with fine tuning",
   "main": "index.js",
   "scripts": {
