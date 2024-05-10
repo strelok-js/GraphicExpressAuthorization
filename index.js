@@ -34,7 +34,7 @@ class GraphicExpressAuthorization {
             const authData = await this.config.authorization(req.body.login, req.body.password);
             if(!authData) return res.status(401).json({message: "Error identification"});
             else {
-                res.cookie('jwtoken', this.generateJWT(authData.login, this.getPayload(authData)), {
+                res.cookie('jwtoken', this.generateJWT(authData.login, this.getPayload(authData)), this.config.cookie??{
                     path: '/',
                     secure: true,
                     httpOnly: true,
@@ -48,7 +48,7 @@ class GraphicExpressAuthorization {
     }
     validateJWT(JWT) {
         return new Promise((res,rej)=>{
-            jwt.verify(JWT, this.config.jwt.publicKey??this.config.jwt.privateKey, {algorithms:[this.config.jwt.genConfig.algorithm]}, (err, decoded)=>{
+            jwt.verify(JWT, this.config.jwt.publicKey??this.config.jwt.privateKey, (err, decoded)=>{
                 if(err) res(null);
                 else res(decoded);
             });
@@ -70,7 +70,7 @@ class GraphicExpressAuthorization {
         if(
             this.config.jwt.timeToRecreateToken &&
             JWTDec.exp - currentTime < this.config.jwt.timeToRecreateToken
-        ) res.cookie('jwtoken', this.generateJWT(JWTDec.login, this.getPayload(JWTDec)), {
+        ) res.cookie('jwtoken', this.generateJWT(JWTDec.login, this.getPayload(JWTDec)), this.config.cookie??{
             path: '/',
             secure: true,
             httpOnly: true,

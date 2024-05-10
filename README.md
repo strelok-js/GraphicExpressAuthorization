@@ -6,16 +6,16 @@ This is very simple authorization for your site. There are a lot of options you 
 Connect the library as 
 
 ```js
-const GraphicExpressAuthorization = require('./index');
+const GraphicExpressAuthorization = require('graphic-express-authorization');
 
 const users = {
-    "Ivan": sha512("T,fZDfiRjyT,f")
+    "Ivan": "T,fZDfiRjyT,f"
 };
 // authorization function has to return payload with login or null
 const {graphicExpressAuthorization, router, identification} = new GraphicExpressAuthorization({
     authorization: function authorization(login, password) { // funtion to verify password and login
         if(!users[login]) return null;
-        if(users[login] === sha512(password)) return {login, payload: "123"};
+        if(users[login] === password) return {login, payload: "123", payload2: "123"};
         return null;
     },
     bruteforce:{ // optional
@@ -23,14 +23,20 @@ const {graphicExpressAuthorization, router, identification} = new GraphicExpress
     },
     htmlPath: null, // if you need to use your own html, details below
     jwt: {
-        privateKey:require('crypto').randomBytes(256).toString("hex"),
-        payload: ["payload"],// allowed payload from authorization function and JWT
+        privateKey:require('crypto').randomBytes(512).toString("hex"),
+        payload: ["payload", "payload2"], // allowed payload from authorization function and JWT
         // publicKey: publicKey, // synchronous encryption methods are also supported
         timeToRecreateToken: 600, //10 minutes
-        genConfig: {
-            algorithm:"HS256",
+        genConfig: { // the config used to generate the JWT
+            algorithm: "HS256",
             expiresIn: '2h'
         }
+    },
+    cookie: { // optional. Settings for the use of cookies
+        path: '/',
+        secure: true,
+        httpOnly: true,
+        sameSite: 'Strict'
     },
     authPath:"/api/" // have to be the same as api router path
 });

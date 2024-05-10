@@ -128,3 +128,8 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+jwtRS256.key
+jwtRS256.key.pub
+package-lock.json
+test-2.js
+.DS_Store
