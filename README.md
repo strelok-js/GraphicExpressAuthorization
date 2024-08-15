@@ -9,7 +9,7 @@ Connect the library as
 const GraphicExpressAuthorization = require('graphic-express-authorization');
 
 const users = {
-    "Ivan": "PyftimKbNsGenm"
+    "Ivan": "PyftimKbNsGenm&"
 };
 // authorization function has to return payload with login or null
 const {graphicExpressAuthorization, router, identification} = new GraphicExpressAuthorization({
