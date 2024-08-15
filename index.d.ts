@@ -19,7 +19,8 @@ interface Config {
 }
 
 interface AuthData {
-    login: string;
+    login?: string;
+    error?: string; // If the username is not passed and error is passed, it will be displayed in the UI
     [key: string]: string;
 }
 
