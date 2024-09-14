@@ -76,7 +76,7 @@ class GraphicExpressAuthorization {
             httpOnly: true,
             sameSite: 'Strict'
         });
-        next();
+        return next();
     }
 }
 
