@@ -32,7 +32,7 @@ class GraphicExpressAuthorization {
             }
 
             const authData = await this.config.authorization(req.body.login, req.body.password);
-            if(!authData||(authData.error&&!authData.login)) return res.status(401).json({message: authData.error??"Error identification"});
+            if(!authData||(authData.error&&!authData.login)) return res.status(401).json({message: authData?.error??"Error identification"});
             else {
                 res.cookie('jwtoken', this.generateJWT(authData.login, this.getPayload(authData)), this.config.cookie??{
                     path: '/',
@@ -76,7 +76,7 @@ class GraphicExpressAuthorization {
             httpOnly: true,
             sameSite: 'Strict'
         });
-        next();
+        return next();
     }
 }
 
