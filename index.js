@@ -9,6 +9,7 @@ class GraphicExpressAuthorization {
         this.router = this.createRouter();
         this.graphicExpressAuthorization = this.GEA = this;
         this.identification = this.useIdentificationFunction.bind(this);
+        this.identification.withGroup = this.identificationWithGroup.bind(this);
 
         this.lastLoginTime = {};
     }
@@ -63,7 +64,17 @@ class GraphicExpressAuthorization {
         for (const key of this.config.jwt.payload) out[key] = JWT[key];
         return out;
     }
-    async useIdentificationFunction(req, res, next) {
+    identificationWithGroup(group) {
+        const groups = Array.isArray(group)?group:[group];
+        return async (req, res, next=()=>{}, noMiddle = false) => {
+            const JWTGroups = await this.useIdentificationFunction(req, res, data=>data?.groups??[]);
+            if(!JWTGroups) return;
+            if(JWTGroups.some(el=>groups.includes(el))) return next(noMiddle?JWTGroups:undefined);
+            //Временное решение. У меня нет странички 503 -Ка
+            else return res.redirect(`${req.protocol}://${req.get('host')}`+this.config.authPath+"?old="+req.originalUrl);
+        }        
+    }
+    async useIdentificationFunction(req, res, next=()=>{}, noMiddle = false) {
         const JWTDec = req.cookies.jwtoken&&await this.validateJWT(req.cookies.jwtoken);
         if(!JWTDec) return res.redirect(`${req.protocol}://${req.get('host')}`+this.config.authPath+"?old="+req.originalUrl);
         const currentTime = Math.floor(Date.now() / 1000);
@@ -76,7 +87,7 @@ class GraphicExpressAuthorization {
             httpOnly: true,
             sameSite: 'Strict'
         });
-        return next();
+        return next(noMiddle?JWTDec:undefined);
     }
 }
 

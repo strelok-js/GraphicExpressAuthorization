@@ -21,15 +21,20 @@ interface Config {
 interface AuthData {
     login?: string;
     error?: string; // If the username is not passed and error is passed, it will be displayed in the UI
-    [key: string]: string;
+    [key: string]: string|undefined;
 }
 
-class GraphicExpressAuthorization {
+interface Identification {
+    (req: Request, res: Response, next: NextFunction): Promise<void>;
+    withGroup(group:string[]|string): (req: Request, res: Response, next: NextFunction) => Promise<void>;
+}
+
+export class GraphicExpressAuthorization {
     config: Config;
     router: Router;
     graphicExpressAuthorization: GraphicExpressAuthorization;
     GEA: GraphicExpressAuthorization;
-    identification: (req: Request, res: Response, next: NextFunction) => Promise<void>;
+    identification: Identification;
     lastLoginTime: { [key: string]: number };
 
     constructor(config: Config);
@@ -39,5 +44,3 @@ class GraphicExpressAuthorization {
     getPayload(JWT: any): object | undefined;
     useIdentificationFunction(req: Request, res: Response, next: NextFunction): Promise<void>;
 }
-
-export = GraphicExpressAuthorization;
