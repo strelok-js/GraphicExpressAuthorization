@@ -70,8 +70,10 @@ There is default page.
 
 If you decide to make your own html you have to connect authentication.js and assign ids.
 ### Connection authentication.js
+
 ```html
-  <script src="./authentication.js"></script>
+
+<script src="authentication.js"></script>
 ```
 ### Ids to be assigned
 ```css

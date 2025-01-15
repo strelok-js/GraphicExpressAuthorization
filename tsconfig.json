@@ -1,0 +1,20 @@
+{
+    "compilerOptions": {
+        "resolveJsonModule": true,
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "target": "ES2022",
+        "module": "CommonJS",
+        "strict": true,
+        "esModuleInterop": true,
+        "skipLibCheck": true,
+        "forceConsistentCasingInFileNames": true,
+        "outDir": "./dist",
+        "rootDir": "./src/",
+        "declaration": true,
+        "emitDeclarationOnly": false
+    },
+
+    "include": ["src/**/*"],
+    "exclude": ["node_modules", "**/*.spec.ts", "dist"]
+}
