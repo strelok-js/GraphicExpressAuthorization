@@ -30,13 +30,15 @@ interface AuthorizationConfig {
     authPath?: string;
     jwt: JWTConfig;
     cookie?: CookieOptions;
-    bruteforce?: number;
+    bruteforce?: {[key: string]: number};
     authorization: (login: string, password: string) => Promise<AuthorizationResult | null>;
 }
 
 interface IdentificationFunction {
     (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean): Promise<void>;
-    // withGroup: (group: string | string[]) => (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean) => Promise<void>;
+    withGroup?: (
+        group: string | string[]
+    ) => (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean) => Promise<void>;
 }
 
 export class GraphicExpressAuthorization {
@@ -44,7 +46,7 @@ export class GraphicExpressAuthorization {
     router: Router;
     lastLoginTime: Record<string, number>;
     graphicExpressAuthorization: this;
-    identification: IdentificationFunction;
+    identification: (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean) => Promise<void>;
     GEA: GraphicExpressAuthorization;
 
     constructor(config: AuthorizationConfig) {
@@ -73,7 +75,7 @@ export class GraphicExpressAuthorization {
             (async () => {
                 const { login, password } = req.body;
                 if (this.config.bruteforce) {
-                    if (Date.now() - (this.lastLoginTime[login] ?? 0) <= this.config.bruteforce) {
+                    if (Date.now() - (this.lastLoginTime[login] ?? 0) <= this.config.bruteforce.delay) {
                         return res.status(429).json({ message: 'Identification attempt is too frequent' });
                     }
                     this.lastLoginTime[login] = Date.now();
@@ -121,8 +123,6 @@ export class GraphicExpressAuthorization {
     }
 
     private getPayload(authData: Record<string, any>, additionalPayload: Record<string, any> = {}): Record<string, unknown> {
-        console.log(authData);
-        console.log(authData);
         if (!this.config.jwt.payload) return additionalPayload;
 
         const payload: Record<string, JSONObject> = { ...additionalPayload };
@@ -131,7 +131,6 @@ export class GraphicExpressAuthorization {
                 payload[key] = authData[key];
             }
         }
-        console.log(authData);
         return payload;
     }
 /*
@@ -153,10 +152,12 @@ export class GraphicExpressAuthorization {
         req: Request,
         res: Response,
         next: NextFunction = () => {},
+        noMiddle: boolean = false
     ): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJWT(token));
         if (!decodedJWT) {
+            if (noMiddle) return; // Если noMiddle задано, просто завершаем
             return res.redirect(
                 `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
             );
