@@ -17,6 +17,7 @@ interface JWTConfig {
     genConfig?: jwt.SignOptions;
     payload?: string[];
     timeToRecreateToken?: number;
+    refreshTokenExpiresIn: string // Время действия refresh token
 }
 
 interface AuthorizationResult {
@@ -97,6 +98,16 @@ export class GraphicExpressAuthorization {
                         sameSite: 'strict',
                     }
                 );
+                res.cookie(
+                    'refreshToken',
+                    this.generateRefreshToken(authData.login, payload),
+                    this.config.cookie ?? {
+                        path: '/',
+                        secure: true,
+                        httpOnly: true,
+                        sameSite: 'strict',
+                    }
+                );
                 return res.json({ message: 'Identification is successful' });
             })().catch(next);
         });
@@ -133,6 +144,7 @@ export class GraphicExpressAuthorization {
         }
         return payload;
     }
+
 /*
     public identificationWithGroup(group: string | string[]) {
         const groups = Array.isArray(group) ? group : [group];
@@ -156,21 +168,40 @@ export class GraphicExpressAuthorization {
     ): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJWT(token));
-        if (!decodedJWT) {
-            if (noMiddle) return; // Если noMiddle задано, просто завершаем
-            return res.redirect(
-                `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
-            );
-        }
+        const refreshToken = req.cookies.refreshToken;
+        const decodedRefreshToken = refreshToken && (await this.validateRefreshToken(refreshToken));
+
+        // Проверка на существование jwtToken (провека теперь не нужна т.к. токен обновляется если просрочен)
+        // if (!decodedJWT) {
+        //     if (noMiddle) return; // Если noMiddle задано, просто завершаем
+        //     return res.redirect(
+        //         `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
+        //     );
+        // }
+
+        // Проверка не истек ли jwtToken, если истек создается новый
         const currentTime = Math.floor(Date.now() / 1000);
+
         if (
+            !decodedJWT ||
             this.config.jwt.timeToRecreateToken &&
             decodedJWT.exp &&
-            decodedJWT.exp - currentTime < this.config.jwt.timeToRecreateToken
+            decodedJWT.exp - currentTime < this.config.jwt.timeToRecreateToken ||
+            decodedJWT.exp < currentTime
         ) {
+            // Проверка на существование и активацию refreshToken
+            if (
+                !refreshToken ||
+                !decodedRefreshToken
+            ) {
+                return res.redirect(
+                    `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
+                );
+            }
+
             res.cookie(
                 'jwtoken',
-                this.generateJWT(decodedJWT.login, this.getPayload(decodedJWT)),
+                this.generateJWT(decodedRefreshToken.login, this.getPayload(decodedRefreshToken)),
                 this.config.cookie ?? {
                     path: '/',
                     secure: true,
@@ -180,6 +211,26 @@ export class GraphicExpressAuthorization {
             );
         }
         return next();
+    }
+
+    private async validateRefreshToken(token: string): Promise<JwtPayload | null> {
+        return new Promise((resolve, reject) => {
+            jwt.verify(token, this.config.jwt.privateKey, (err, decoded) => {
+
+                if (err) {
+                    resolve(null);
+                }
+                resolve(decoded as JwtPayload);
+            });
+        });
+    }
+
+    // Вынести настройки в отдельную конфигурацию
+    private generateRefreshToken(login: string, payload: Record<string, unknown> = {}): string {
+        return jwt.sign({ login, ...payload }, this.config.jwt.privateKey,  {
+            algorithm: "HS256",
+            expiresIn: this.config.jwt.refreshTokenExpiresIn,
+        });
     }
 }
 
