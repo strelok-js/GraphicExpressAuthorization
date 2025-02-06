@@ -35,26 +35,19 @@ interface AuthorizationConfig {
     authorization: (login: string, password: string) => Promise<AuthorizationResult | null>;
 }
 
-interface IdentificationFunction {
-    (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean): Promise<void>;
-    withGroup?: (
-        group: string | string[]
-    ) => (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean) => Promise<void>;
-}
-
 export class GraphicExpressAuthorization {
     private config: AuthorizationConfig;
     router: Router;
     lastLoginTime: Record<string, number>;
     graphicExpressAuthorization: this;
-    identification: (req: Request, res: Response, next?: NextFunction, noMiddle?: boolean) => Promise<void>;
+    identification: (req: Request, res: Response, next?: NextFunction) => Promise<void>;
     GEA: GraphicExpressAuthorization;
 
     constructor(config: AuthorizationConfig) {
         this.config = config;
         this.router = this.createRouter();
         this.graphicExpressAuthorization = this.GEA = this;
-        this.identification = this.useIdentificationFunction.bind(this) as IdentificationFunction;
+        this.identification = this.useIdentificationFunction.bind(this);
         // this.identification.withGroup = this.identificationWithGroup.bind(this);
 
         this.lastLoginTime = {};
@@ -72,7 +65,7 @@ export class GraphicExpressAuthorization {
             res.sendFile(__dirname + '/authentication.js');
         });
 
-        router.post('/setJWT', (req: Request, res: Response, next: NextFunction) => {
+        router.post('/setJWT', (req: Request, res: Response, next: NextFunction) => { //излишняя асинхронность необходимо убрать
             (async () => {
                 const { login, password } = req.body;
                 if (this.config.bruteforce) {
@@ -109,28 +102,10 @@ export class GraphicExpressAuthorization {
                     }
                 );
                 return res.json({ message: 'Identification is successful' });
-            })().catch(next);
+            })().catch(next); //какой то кринж!
         });
 
         return router;
-    }
-
-    private validateJWT(token: string): Promise<JwtPayload | null> {
-        return new Promise((resolve) => {
-            jwt.verify(
-                token,
-                this.config.jwt.publicKey ?? this.config.jwt.privateKey,
-                (err, decoded) => {
-                    if (err) resolve(null);
-                    else resolve(decoded as JwtPayload);
-                }
-            );
-        });
-    }
-
-    private generateJWT(login: string, payload: Record<string, unknown> = {}): string {
-        const tokenPayload = { login, ...payload };
-        return jwt.sign(tokenPayload, this.config.jwt.privateKey, this.config.jwt.genConfig);
     }
 
     private getPayload(authData: Record<string, any>, additionalPayload: Record<string, any> = {}): Record<string, unknown> {
@@ -164,7 +139,7 @@ export class GraphicExpressAuthorization {
         req: Request,
         res: Response,
         next: NextFunction = () => {},
-        noMiddle: boolean = false
+        noMiddle: boolean = false //noMiddle!
     ): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJWT(token));
@@ -213,7 +188,19 @@ export class GraphicExpressAuthorization {
         return next();
     }
 
-    private async validateRefreshToken(token: string): Promise<JwtPayload | null> {
+
+    private async validateJWT(token: string): Promise<JwtPayload | null> {
+        try {
+            return jwt.verify(
+                token,
+                this.config.jwt.publicKey ?? this.config.jwt.privateKey
+            ) as JwtPayload;
+        } catch {
+            return null;
+        }
+    }
+
+    private async validateRefreshToken(token: string): Promise<JwtPayload | null> { //дублирование кода!
         return new Promise((resolve, reject) => {
             jwt.verify(token, this.config.jwt.privateKey, (err, decoded) => {
 
@@ -225,8 +212,13 @@ export class GraphicExpressAuthorization {
         });
     }
 
+    private generateJWT(login: string, payload: Record<string, unknown> = {}): string {
+        const tokenPayload = { login, ...payload };
+        return jwt.sign(tokenPayload, this.config.jwt.privateKey, this.config.jwt.genConfig);
+    }
+
     // Вынести настройки в отдельную конфигурацию
-    private generateRefreshToken(login: string, payload: Record<string, unknown> = {}): string {
+    private generateRefreshToken(login: string, payload: Record<string, unknown> = {}): string { //дублирование кода!
         return jwt.sign({ login, ...payload }, this.config.jwt.privateKey,  {
             algorithm: "HS256",
             expiresIn: this.config.jwt.refreshTokenExpiresIn,
