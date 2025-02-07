@@ -20,10 +20,13 @@ const {graphicExpressAuthorization, router, identification} = new GraphicExpress
         publicKey: require('crypto').randomBytes(512).toString("hex"),
         payload: ["payload", "payload2"], // allowed payload from authorization function and JWT
         timeToRecreateToken: 600, // Время через которое можно обновить jwt токен
-        refreshTokenExpiresIn: '7d', // Время действия refresh token (например, 7 дней)
-        genConfig: { // the config used to generate the JWT
+        genConfig: {
             algorithm: "HS256",
-            expiresIn: '2h' // время работы jwt токена в милисекундах, можно указывать время типом '7d' - 7 дней
+            expiresIn: '2h'
+        },
+        genPrivateConfig: {
+            algorithm: "HS256",
+            expiresIn: '7d'
         }
     },
     cookie: { // optional. Settings for the use of cookies

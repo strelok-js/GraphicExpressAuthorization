@@ -1,7 +1,7 @@
 import express, { Request, Response, NextFunction, Router, CookieOptions  } from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
-import jwt, { JwtPayload } from 'jsonwebtoken';
+import jwt, {JwtPayload, SignOptions} from 'jsonwebtoken';
 
 type JSONValue = string | number | boolean | null | JSONObject | JSONArray | undefined;
 
@@ -14,10 +14,10 @@ interface JSONArray extends Array<JSONValue> {}
 interface JWTConfig {
     privateKey: string;
     publicKey: string;
-    genConfig?: jwt.SignOptions;
+    genConfig: jwt.SignOptions;
+    genPrivateConfig: jwt.SignOptions;
     payload?: string[];
     timeToRecreateToken?: number;
-    refreshTokenExpiresIn: string // Время действия refresh token
 }
 
 interface AuthorizationResult {
@@ -83,7 +83,7 @@ export class GraphicExpressAuthorization {
                 const payload = this.getPayload(authData);
                 res.cookie(
                     'jwtoken',
-                    this.generateJWT(authData.login, payload),
+                    this.generateJWT(authData.login, payload, this.config.jwt.genConfig),
                     this.config.cookie ?? {
                         path: '/',
                         secure: true,
@@ -93,7 +93,7 @@ export class GraphicExpressAuthorization {
                 );
                 res.cookie(
                     'refreshToken',
-                    this.generateRefreshToken(authData.login, payload),
+                    this.generateJWT(authData.login, payload, this.config.jwt.genPrivateConfig),
                     this.config.cookie ?? {
                         path: '/',
                         secure: true,
@@ -142,17 +142,9 @@ export class GraphicExpressAuthorization {
         noMiddle: boolean = false //noMiddle!
     ): Promise<void> {
         const token = req.cookies.jwtoken;
-        const decodedJWT = token && (await this.validateToken(token, this.config.jwt.publicKey));
+        const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey));
         const refreshToken = req.cookies.refreshToken;
-        const decodedRefreshToken = refreshToken && (await this.validateToken(refreshToken, this.config.jwt.privateKey));
-
-        // Проверка на существование jwtToken (провека теперь не нужна т.к. токен обновляется если просрочен)
-        // if (!decodedJWT) {
-        //     if (noMiddle) return; // Если noMiddle задано, просто завершаем
-        //     return res.redirect(
-        //         `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
-        //     );
-        // }
+        const decodedRefreshToken = refreshToken && (await this.validateJwt(refreshToken, this.config.jwt.privateKey));
 
         // Проверка не истек ли jwtToken, если истек создается новый
         const currentTime = Math.floor(Date.now() / 1000);
@@ -176,7 +168,7 @@ export class GraphicExpressAuthorization {
 
             res.cookie(
                 'jwtoken',
-                this.generateJWT(decodedRefreshToken.login, this.getPayload(decodedRefreshToken)),
+                this.generateJWT(decodedRefreshToken.login, this.getPayload(decodedRefreshToken), this.config.jwt.genConfig),
                 this.config.cookie ?? {
                     path: '/',
                     secure: true,
@@ -188,7 +180,7 @@ export class GraphicExpressAuthorization {
         return next();
     }
 
-    private async validateToken(token: string, key: string): Promise<JwtPayload | null> {
+    private async validateJwt(token: string, key: string): Promise<JwtPayload | null> {
         try {
             return jwt.verify(
                 token,
@@ -199,17 +191,8 @@ export class GraphicExpressAuthorization {
         }
     }
 
-    private generateJWT(login: string, payload: Record<string, unknown> = {}): string {
-        const tokenPayload = { login, ...payload };
-        return jwt.sign(tokenPayload, this.config.jwt.privateKey, this.config.jwt.genConfig);
-    }
-
-    // Вынести настройки в отдельную конфигурацию
-    private generateRefreshToken(login: string, payload: Record<string, unknown> = {}): string { //дублирование кода!
-        return jwt.sign({ login, ...payload }, this.config.jwt.privateKey,  {
-            algorithm: "HS256",
-            expiresIn: this.config.jwt.refreshTokenExpiresIn,
-        });
+    private generateJWT(login: string, payload: Record<string, unknown> = {}, config: SignOptions): string {
+        return jwt.sign({ login, ...payload }, this.config.jwt.privateKey, config);
     }
 }
 
