@@ -3,10 +3,12 @@ import GraphicExpressAuthorization from './dist/index';
 const users:{[key:string]:string} = {
     "123": "123"
 };
+
+
 // authorization function has to return payload with login or null
 
 const {graphicExpressAuthorization, router, identification} = new GraphicExpressAuthorization({
-    authorization: async function authorization(login, password) {
+    authorization: function authorization(login, password) {
         if(!users[login]) return null;
         if(users[login] === password) return {login, payload: "123", payload2: "123"};
         return null;
@@ -17,9 +19,8 @@ const {graphicExpressAuthorization, router, identification} = new GraphicExpress
     htmlPath: undefined, // if you need to use your own html, details below
     jwt: {
         privateKey:require('crypto').randomBytes(512).toString("hex"),
-        publicKey: require('crypto').randomBytes(512).toString("hex"),
+        publicKey: undefined,
         payload: ["payload", "payload2"], // allowed payload from authorization function and JWT
-        timeToRecreateToken: 600, // Время через которое можно обновить jwt токен
         genConfig: {
             algorithm: "HS256",
             expiresIn: '2h'

@@ -13,11 +13,10 @@ interface JSONArray extends Array<JSONValue> {}
 
 interface JWTConfig {
     privateKey: string;
-    publicKey: string;
+    publicKey?: string;
     genConfig: jwt.SignOptions;
     genPrivateConfig: jwt.SignOptions;
     payload?: string[];
-    timeToRecreateToken?: number;
 }
 
 interface AuthorizationResult {
@@ -32,7 +31,7 @@ interface AuthorizationConfig {
     jwt: JWTConfig;
     cookie?: CookieOptions;
     bruteforce?: {[key: string]: number};
-    authorization: (login: string, password: string) => Promise<AuthorizationResult | null>;
+    authorization: (login: string, password: string) => Promise<AuthorizationResult | null> | AuthorizationResult | null;
 }
 
 export class GraphicExpressAuthorization {
@@ -146,18 +145,16 @@ export class GraphicExpressAuthorization {
         next: NextFunction = () => {},
     ): Promise<void> {
         const token = req.cookies.jwtoken;
-        const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey));
+        const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
         const refreshToken = req.cookies.refreshToken;
-        const decodedRefreshToken = refreshToken && (await this.validateJwt(refreshToken, this.config.jwt.privateKey));
+        const decodedRefreshToken = refreshToken && (await this.validateJwt(refreshToken, this.config.jwt.publicKey || this.config.jwt.privateKey));
 
         // Проверка не истек ли jwtToken, если истек создается новый
         const currentTime = Math.floor(Date.now() / 1000);
 
         if (
             !decodedJWT ||
-            this.config.jwt.timeToRecreateToken &&
             decodedJWT.exp &&
-            decodedJWT.exp - currentTime < this.config.jwt.timeToRecreateToken ||
             decodedJWT.exp < currentTime
         ) {
             // Проверка на существование и активацию refreshToken
@@ -184,15 +181,16 @@ export class GraphicExpressAuthorization {
         return next();
     }
 
-    private async validateJwt(token: string, key: string): Promise<JwtPayload | null> {
-        try {
-            return jwt.verify(
-                token,
-                key
-            ) as JwtPayload;
-        } catch {
-            return null;
-        }
+    private validateJwt(token: string, key: string): Promise<JwtPayload | null> {
+        return new Promise((resolve, reject) => {
+            jwt.verify(token, key, (err, decoded) => {
+
+                if (err) {
+                    resolve(null);
+                }
+                resolve(decoded as JwtPayload);
+            });
+        });
     }
 
     private generateJWT(login: string, payload: Record<string, unknown> = {}, config: SignOptions): string {
