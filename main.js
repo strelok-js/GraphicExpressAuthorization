@@ -17,8 +17,8 @@ const {graphicExpressAuthorization, router, identification} = new GraphicExpress
     htmlPath: null, // if you need to use your own html, details below
     jwt: {
         privateKey:require('crypto').randomBytes(512).toString("hex"),
+        publicKey: require('crypto').randomBytes(512).toString("hex"),
         payload: ["payload", "payload2"], // allowed payload from authorization function and JWT
-        // publicKey: publicKey, // synchronous encryption methods are also supported
         timeToRecreateToken: 600, //10 minutes
         refreshTokenExpiresIn: '7d', // Время действия refresh token (например, 7 дней)
         genConfig: { // the config used to generate the JWT

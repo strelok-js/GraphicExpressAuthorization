@@ -13,7 +13,7 @@ interface JSONArray extends Array<JSONValue> {}
 
 interface JWTConfig {
     privateKey: string;
-    publicKey?: string;
+    publicKey: string;
     genConfig?: jwt.SignOptions;
     payload?: string[];
     timeToRecreateToken?: number;
@@ -142,9 +142,9 @@ export class GraphicExpressAuthorization {
         noMiddle: boolean = false //noMiddle!
     ): Promise<void> {
         const token = req.cookies.jwtoken;
-        const decodedJWT = token && (await this.validateJWT(token));
+        const decodedJWT = token && (await this.validateToken(token, this.config.jwt.publicKey));
         const refreshToken = req.cookies.refreshToken;
-        const decodedRefreshToken = refreshToken && (await this.validateRefreshToken(refreshToken));
+        const decodedRefreshToken = refreshToken && (await this.validateToken(refreshToken, this.config.jwt.privateKey));
 
         // Проверка на существование jwtToken (провека теперь не нужна т.к. токен обновляется если просрочен)
         // if (!decodedJWT) {
@@ -188,28 +188,15 @@ export class GraphicExpressAuthorization {
         return next();
     }
 
-
-    private async validateJWT(token: string): Promise<JwtPayload | null> {
+    private async validateToken(token: string, key: string): Promise<JwtPayload | null> {
         try {
             return jwt.verify(
                 token,
-                this.config.jwt.publicKey ?? this.config.jwt.privateKey
+                key
             ) as JwtPayload;
         } catch {
             return null;
         }
-    }
-
-    private async validateRefreshToken(token: string): Promise<JwtPayload | null> { //дублирование кода!
-        return new Promise((resolve, reject) => {
-            jwt.verify(token, this.config.jwt.privateKey, (err, decoded) => {
-
-                if (err) {
-                    resolve(null);
-                }
-                resolve(decoded as JwtPayload);
-            });
-        });
     }
 
     private generateJWT(login: string, payload: Record<string, unknown> = {}): string {
