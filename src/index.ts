@@ -128,11 +128,11 @@ export class GraphicExpressAuthorization {
 /*
     public identificationWithGroup(group: string | string[]) {
         const groups = Array.isArray(group) ? group : [group];
-        return async (req: Request, res: Response, next: NextFunction = () => {}, noMiddle = false) => {
+        return async (req: Request, res: Response, next: NextFunction = () => {}) => {
             const JWTGroups = await this.useIdentificationFunction(req, res, (data) => data?.groups ?? []);
             if (!JWTGroups) return;
             if (JWTGroups.some((el: string) => groups.includes(el))) {
-                return next(noMiddle ? JWTGroups : undefined);
+                return next(JWTGroups : undefined);
             }
             return res.redirect(
                 `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
@@ -144,7 +144,6 @@ export class GraphicExpressAuthorization {
         req: Request,
         res: Response,
         next: NextFunction = () => {},
-        noMiddle: boolean = false //noMiddle!
     ): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey));
