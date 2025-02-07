@@ -65,19 +65,22 @@ export class GraphicExpressAuthorization {
             res.sendFile(__dirname + '/authentication.js');
         });
 
-        router.post('/setJWT', (req: Request, res: Response, next: NextFunction) => { //излишняя асинхронность необходимо убрать
-            (async () => {
+        router.post('/setJWT', async (req: Request, res: Response, next: NextFunction) => {
+            try {
                 const { login, password } = req.body;
+
                 if (this.config.bruteforce) {
                     if (Date.now() - (this.lastLoginTime[login] ?? 0) <= this.config.bruteforce.delay) {
-                        return res.status(429).json({ message: 'Identification attempt is too frequent' });
+                        res.status(429).json({ message: 'Identification attempt is too frequent' });
+                        return;
                     }
                     this.lastLoginTime[login] = Date.now();
                 }
 
                 const authData = await this.config.authorization(login, password);
                 if (!authData || (authData.error && !authData.login)) {
-                    return res.status(401).json({ message: authData?.error ?? 'Error identification' });
+                    res.status(401).json({ message: authData?.error ?? 'Error identification' });
+                    return;
                 }
 
                 const payload = this.getPayload(authData);
@@ -101,10 +104,12 @@ export class GraphicExpressAuthorization {
                         sameSite: 'strict',
                     }
                 );
-                return res.json({ message: 'Identification is successful' });
-            })().catch(next); //какой то кринж!
-        });
 
+                res.json({ message: 'Identification is successful' }); // ✅ Не возвращаем, просто отправляем ответ
+            } catch (error) {
+                next(error);
+            }
+        });
         return router;
     }
 
