@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction, Router, CookieOptions  } from 'express';
+import express, {Request, Response, NextFunction, Router, CookieOptions, request} from 'express';
 import bodyParser from 'body-parser';
 import cookieParser from 'cookie-parser';
 import jwt, {JwtPayload, SignOptions} from 'jsonwebtoken';
@@ -19,11 +19,8 @@ interface JWTConfig {
     payload?: string[];
 }
 
-interface AuthorizationResult {
-    login: string;
-    groups?: string[];
-    error?: string;
-}
+type AuthorizationResult = { [key: string]: JSONObject };
+
 
 interface AuthorizationConfig {
     htmlPath?: string;
@@ -57,9 +54,6 @@ export class GraphicExpressAuthorization {
 
         router.use(bodyParser.json());
         router.use(cookieParser());
-        router.get('/', (req: Request, res: Response) => {
-            res.sendFile(this.config.htmlPath ?? __dirname + '/index.html');
-        });
         router.get('/authentication.js', (req: Request, res: Response) => {
             res.sendFile(__dirname + '/authentication.js');
         });
@@ -82,10 +76,10 @@ export class GraphicExpressAuthorization {
                     return;
                 }
 
-                const payload = this.getPayload(authData);
+                const payload = this.getPayload(authData as JSONObject);
                 res.cookie(
                     'jwtoken',
-                    this.generateJWT(authData.login, payload, this.config.jwt.genConfig),
+                    this.generateJWT(authData.login as unknown as string, payload, this.config.jwt.genConfig),
                     this.config.cookie ?? {
                         path: '/',
                         secure: true,
@@ -95,7 +89,7 @@ export class GraphicExpressAuthorization {
                 );
                 res.cookie(
                     'refreshToken',
-                    this.generateJWT(authData.login, payload, this.config.jwt.genPrivateConfig),
+                    this.generateJWT(authData.login as unknown as string, payload, this.config.jwt.genPrivateConfig),
                     this.config.cookie ?? {
                         path: '/',
                         secure: true,
@@ -104,24 +98,26 @@ export class GraphicExpressAuthorization {
                     }
                 );
 
-                res.json({ message: 'Identification is successful' }); // ✅ Не возвращаем, просто отправляем ответ
+                res.json({ message: 'Identification is successful' });
             } catch (error) {
                 next(error);
             }
         });
+
+
+        router.use('/', this.useRefreshToken.bind(this), (req: Request, res: Response) => {
+
+            res.sendFile(this.config.htmlPath ?? __dirname + '/index.html');
+        });
+
         return router;
     }
 
-    private getPayload(authData: Record<string, any>, additionalPayload: Record<string, any> = {}): Record<string, unknown> {
-        if (!this.config.jwt.payload) return additionalPayload;
-
-        const payload: Record<string, JSONObject> = { ...additionalPayload };
-        for (const key of this.config.jwt.payload) {
-            if (authData[key] !== undefined) {
-                payload[key] = authData[key];
-            }
-        }
-        return payload;
+    getPayload(JWT: JSONObject) {
+        if(!this.config.jwt.payload) return undefined;
+        const out: JSONObject = {};
+        for (const key of this.config.jwt.payload) out[key] = JWT[key];
+        return out;
     }
 
 /*
@@ -146,39 +142,41 @@ export class GraphicExpressAuthorization {
     ): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
-        const refreshToken = req.cookies.refreshToken;
-        const decodedRefreshToken = refreshToken && (await this.validateJwt(refreshToken, this.config.jwt.publicKey || this.config.jwt.privateKey));
-
-        // Проверка не истек ли jwtToken, если истек создается новый
-        const currentTime = Math.floor(Date.now() / 1000);
 
         if (
-            !decodedJWT ||
-            decodedJWT.exp &&
-            decodedJWT.exp < currentTime
+            !decodedJWT
         ) {
-            // Проверка на существование и активацию refreshToken
-            if (
-                !refreshToken ||
-                !decodedRefreshToken
-            ) {
-                return res.redirect(
-                    `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
-                );
-            }
-
-            res.cookie(
-                'jwtoken',
-                this.generateJWT(decodedRefreshToken.login, this.getPayload(decodedRefreshToken), this.config.jwt.genConfig),
-                this.config.cookie ?? {
-                    path: '/',
-                    secure: true,
-                    httpOnly: true,
-                    sameSite: 'strict',
-                }
-            );
+            res.status(307).set("Location", `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`).end();
+            return;
         }
         return next();
+    }
+
+    private async useRefreshToken(
+        req: Request,
+        res: Response,
+        next: NextFunction = () => {},
+    ): Promise<void> {
+        const token = req.cookies.refreshToken;
+        const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
+
+        if (
+            !decodedJWT
+        ) {
+            return next();
+        }
+        res.cookie(
+            'jwtoken',
+            this.generateJWT(decodedJWT.login, this.getPayload(decodedJWT), this.config.jwt.genConfig),
+            this.config.cookie ?? {
+                path: '/',
+                secure: true,
+                httpOnly: true,
+                sameSite: 'strict',
+            }
+        );
+
+        res.status(307).set("Location", req.query.old as string).end();
     }
 
     private validateJwt(token: string, key: string): Promise<JwtPayload | null> {
@@ -193,7 +191,7 @@ export class GraphicExpressAuthorization {
         });
     }
 
-    private generateJWT(login: string, payload: Record<string, unknown> = {}, config: SignOptions): string {
+    private generateJWT(login: string, payload: Record<string, unknown> | undefined = {}, config: SignOptions): string {
         return jwt.sign({ login, ...payload }, this.config.jwt.privateKey, config);
     }
 }

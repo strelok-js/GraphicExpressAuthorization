@@ -23,7 +23,7 @@ const {graphicExpressAuthorization, router, identification} = new GraphicExpress
         payload: ["payload", "payload2"], // allowed payload from authorization function and JWT
         genConfig: {
             algorithm: "HS256",
-            expiresIn: '2h'
+            expiresIn: '20000'
         },
         genPrivateConfig: {
             algorithm: "HS256",
@@ -46,7 +46,7 @@ import cookieParser from 'cookie-parser';
 
 app.use("/api/", router); // have to be the same as authPath
 
-app.get("/enter", cookieParser(), identification, (req,res)=>{ // identification can't be global
+app.use("/enter", cookieParser(), identification, (req,res)=>{ // identification can't be global
     res.json({ message: 'WELCOME'});
 });
 app.listen(3000, () => {
