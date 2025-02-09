@@ -2,7 +2,8 @@
   "name": "graphic-express-authorization",
   "version": "0.0.5",
   "description": "Simple graphical authorization with login and password input and subsequent issuance of JWToken for express with fine tuning",
-  "main": "dist/index.d.ts",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -37,6 +38,5 @@
     "@typescript-eslint/parser": "^8.20.0",
     "eslint": "^9.18.0",
     "typescript": "^5.7.3"
-  },
-  "types": "./dist/index.d.ts"
+  }
 }
