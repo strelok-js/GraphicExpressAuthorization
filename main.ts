@@ -19,18 +19,17 @@ const { graphicExpressAuthorization, router, identification } = new GraphicExpre
     htmlPath: undefined, // if you need to use your own html, details below
     jwt: {
         privateKey: require('crypto').randomBytes(512).toString('hex'),
-        publicKey: undefined,
-        payload: ['payload', 'payload2'], // allowed payload from authorization function and JWT
+        payload: ['login', 'payload', 'payload2'], // allowed payload from authorization function and JWT
         genConfig: {
             algorithm: 'HS256',
-            expiresIn: '20000',
+            expiresIn: '2h',
         },
         genPrivateConfig: {
             algorithm: 'HS256',
             expiresIn: '7d',
         },
     },
-    cookie: {
+    jwtCookie: {
         // optional. Settings for the use of cookies
         path: '/',
         secure: true,

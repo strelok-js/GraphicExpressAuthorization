@@ -19,11 +19,16 @@ interface JWTConfig {
     payload?: string[];
 }
 
+interface GEACookieOptions extends CookieOptions {
+    cookieName?: string;
+}
+
 interface AuthorizationConfig {
     htmlPath?: string;
     authPath?: string;
     jwt: JWTConfig;
-    cookie?: CookieOptions;
+    jwtCookie?: GEACookieOptions;
+    refreshCookie?: GEACookieOptions;
     bruteforce?: { [key: string]: number };
     authorization: (login: string, password: string) => Promise<JSONObject | null> | JSONObject | null;
 }
@@ -75,9 +80,9 @@ export class GraphicExpressAuthorization {
 
                 const payload = this.getPayload(authData);
                 res.cookie(
-                    'jwtoken',
+                    this.config.jwtCookie?.cookieName ?? 'jwtoken',
                     this.generateJWT(payload, this.config.jwt.genConfig),
-                    this.config.cookie ?? {
+                    this.config.jwtCookie ?? {
                         path: '/',
                         secure: true,
                         httpOnly: true,
@@ -85,9 +90,9 @@ export class GraphicExpressAuthorization {
                     },
                 );
                 res.cookie(
-                    'refreshToken',
+                    this.config.refreshCookie?.cookieName ?? 'refresh.jwtoken',
                     this.generateJWT(payload, this.config.jwt.genPrivateConfig),
-                    this.config.cookie ?? {
+                    this.config.refreshCookie ?? {
                         path: '/',
                         secure: true,
                         httpOnly: true,
@@ -115,45 +120,26 @@ export class GraphicExpressAuthorization {
         return out;
     }
 
-    /*
-    public identificationWithGroup(group: string | string[]) {
-        const groups = Array.isArray(group) ? group : [group];
-        return async (req: Request, res: Response, next: NextFunction = () => {}) => {
-            const JWTGroups = await this.useIdentificationFunction(req, res, (data) => data?.groups ?? []);
-            if (!JWTGroups) return;
-            if (JWTGroups.some((el: string) => groups.includes(el))) {
-                return next(JWTGroups : undefined);
-            }
-            return res.redirect(
-                `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
-            );
-        };
-    }
-*/
     public async useIdentificationFunction(req: Request, res: Response, next: NextFunction = () => {}): Promise<void> {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
 
-        if (!decodedJWT) {
-            res.status(307)
-                .set('Location', `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`)
-                .end();
-            return;
-        }
-        return next();
+        if (decodedJWT) return next();
+        res.status(307)
+            .set('Location', `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`)
+            .end();
     }
 
     private async useRefreshToken(req: Request, res: Response, next: NextFunction = () => {}): Promise<void> {
-        const token = req.cookies.refreshToken;
+        const token = req.cookies[this.config.refreshCookie?.cookieName ?? 'refresh.jwtoken'];
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
 
-        if (!decodedJWT) {
-            return next();
-        }
+        if (!decodedJWT) return next();
+
         res.cookie(
-            'jwtoken',
+            this.config.jwtCookie?.cookieName ?? 'jwtoken',
             this.generateJWT(this.getPayload(decodedJWT), this.config.jwt.genConfig),
-            this.config.cookie ?? {
+            this.config.refreshCookie ?? {
                 path: '/',
                 secure: true,
                 httpOnly: true,

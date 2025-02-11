@@ -13,11 +13,15 @@ interface JWTConfig {
     genPrivateConfig: jwt.SignOptions;
     payload?: string[];
 }
+interface GEACookieOptions extends CookieOptions {
+    cookieName?: string;
+}
 interface AuthorizationConfig {
     htmlPath?: string;
     authPath?: string;
     jwt: JWTConfig;
-    cookie?: CookieOptions;
+    jwtCookie?: GEACookieOptions;
+    refreshCookie?: GEACookieOptions;
     bruteforce?: {
         [key: string]: number;
     };

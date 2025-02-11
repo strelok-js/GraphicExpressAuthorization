@@ -46,13 +46,13 @@ class GraphicExpressAuthorization {
                     return;
                 }
                 const payload = this.getPayload(authData);
-                res.cookie('jwtoken', this.generateJWT(payload, this.config.jwt.genConfig), this.config.cookie ?? {
+                res.cookie(this.config.jwtCookie?.cookieName ?? 'jwtoken', this.generateJWT(payload, this.config.jwt.genConfig), this.config.jwtCookie ?? {
                     path: '/',
                     secure: true,
                     httpOnly: true,
                     sameSite: 'strict',
                 });
-                res.cookie('refreshToken', this.generateJWT(payload, this.config.jwt.genPrivateConfig), this.config.cookie ?? {
+                res.cookie(this.config.refreshCookie?.cookieName ?? 'refresh.jwtoken', this.generateJWT(payload, this.config.jwt.genPrivateConfig), this.config.refreshCookie ?? {
                     path: '/',
                     secure: true,
                     httpOnly: true,
@@ -77,39 +77,21 @@ class GraphicExpressAuthorization {
             out[key] = JWT[key];
         return out;
     }
-    /*
-    public identificationWithGroup(group: string | string[]) {
-        const groups = Array.isArray(group) ? group : [group];
-        return async (req: Request, res: Response, next: NextFunction = () => {}) => {
-            const JWTGroups = await this.useIdentificationFunction(req, res, (data) => data?.groups ?? []);
-            if (!JWTGroups) return;
-            if (JWTGroups.some((el: string) => groups.includes(el))) {
-                return next(JWTGroups : undefined);
-            }
-            return res.redirect(
-                `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`
-            );
-        };
-    }
-*/
     async useIdentificationFunction(req, res, next = () => { }) {
         const token = req.cookies.jwtoken;
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
-        if (!decodedJWT) {
-            res.status(307)
-                .set('Location', `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`)
-                .end();
-            return;
-        }
-        return next();
+        if (decodedJWT)
+            return next();
+        res.status(307)
+            .set('Location', `${req.protocol}://${req.get('host')}${this.config.authPath}?old=${req.originalUrl}`)
+            .end();
     }
     async useRefreshToken(req, res, next = () => { }) {
-        const token = req.cookies.refreshToken;
+        const token = req.cookies[this.config.refreshCookie?.cookieName ?? 'refresh.jwtoken'];
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
-        if (!decodedJWT) {
+        if (!decodedJWT)
             return next();
-        }
-        res.cookie('jwtoken', this.generateJWT(this.getPayload(decodedJWT), this.config.jwt.genConfig), this.config.cookie ?? {
+        res.cookie(this.config.jwtCookie?.cookieName ?? 'jwtoken', this.generateJWT(this.getPayload(decodedJWT), this.config.jwt.genConfig), this.config.refreshCookie ?? {
             path: '/',
             secure: true,
             httpOnly: true,
