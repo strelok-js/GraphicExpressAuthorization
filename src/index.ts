@@ -121,7 +121,7 @@ export class GraphicExpressAuthorization {
     }
 
     public async useIdentificationFunction(req: Request, res: Response, next: NextFunction = () => {}): Promise<void> {
-        const token = req.cookies.jwtoken;
+        const token = req.cookies[this.config.jwtCookie?.cookieName ?? 'jwtoken'];
         const decodedJWT = token && (await this.validateJwt(token, this.config.jwt.publicKey || this.config.jwt.privateKey));
 
         if (decodedJWT) return next();
